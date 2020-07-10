@@ -13,6 +13,9 @@ import android.util.Log;
 
 import androidx.annotation.Nullable;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class BackgroundService extends Service {
 
     private static final String TAG = "BOOMBOOMTESTGPS";
@@ -94,9 +97,12 @@ public class BackgroundService extends Service {
             Log.d(TAG, "gps provider does not exist " + ex.getMessage());
         }
 
-        new Handler().postDelayed(() -> {
-
-        },10000);
+        new Timer().scheduleAtFixedRate(new TimerTask(){
+            @Override
+            public void run(){
+                Log.i("tag", "A Kiss every 5 seconds");
+            }
+        },0,10000);
     }
 
     @Override
