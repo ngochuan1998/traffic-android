@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnError(throwable -> {
-                    throw new RuntimeException("Login failed!");
+                    Toast.makeText(MainActivity.this, "Signup failed!", Toast.LENGTH_SHORT).show();
                 })
                 .subscribe(new Consumer<String>() {
                     @Override
@@ -177,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
                         .doOnError(throwable -> {
-                            throw new RuntimeException("Login failed!");
+                            Toast.makeText(MainActivity.this, "Login failed!", Toast.LENGTH_SHORT).show();
                         })
                         .subscribe(new Consumer<String>() {
                             @Override

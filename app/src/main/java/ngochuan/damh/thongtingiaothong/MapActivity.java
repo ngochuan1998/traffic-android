@@ -2,6 +2,7 @@ package ngochuan.damh.thongtingiaothong;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -101,6 +102,8 @@ public class MapActivity extends AppCompatActivity
     IMyService iMyService;
     CompositeDisposable compositeDisposable = new CompositeDisposable();
 
+    public Context applicationContext;
+
 //    BackgroundService mService=null;
     boolean mBound=false;
 
@@ -117,6 +120,11 @@ public class MapActivity extends AppCompatActivity
 
         Retrofit retrofitClient = RetrofitClient.getInstance();
         iMyService = retrofitClient.create(IMyService.class);
+
+        // use this to start and trigger a service
+        applicationContext = this.getApplicationContext();
+        Intent i = new Intent(applicationContext, BackgroundService.class);
+        applicationContext.startService(i);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
@@ -180,7 +188,7 @@ public class MapActivity extends AppCompatActivity
         super.onStart();
     }
 
-    private void getLocation() {
+    public void getLocation() {
         fusedLocationProviderClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
             @Override
             public void onComplete(@NonNull Task<Location> task) {
@@ -287,7 +295,7 @@ public class MapActivity extends AppCompatActivity
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnError(throwable -> {
-                    throw new RuntimeException("Update GPS failed!");
+                    Toast.makeText(this, "Update location failed!", Toast.LENGTH_SHORT).show();
                 })
                 .subscribe(new Consumer<String>() {
                     @Override
