@@ -3,8 +3,13 @@ package ngochuan.damh.thongtingiaothong;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.Manifest;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +21,17 @@ import android.widget.Toast;
 import com.afollestad.materialdialogs.DialogAction;
 import com.afollestad.materialdialogs.MaterialDialog;
 import com.github.javiersantos.materialstyleddialogs.MaterialStyledDialog;
+import com.google.gson.Gson;
+
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.MultiplePermissionsReport;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
+
+
+import java.util.Arrays;
+import java.util.List;
 
 import io.reactivex.Observer;
 import io.reactivex.Scheduler;
@@ -26,6 +42,7 @@ import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import ngochuan.damh.thongtingiaothong.Retrofit.IMyService;
 import ngochuan.damh.thongtingiaothong.Retrofit.RetrofitClient;
+import ngochuan.damh.thongtingiaothong.model.LoginResponse;
 import ngochuan.damh.thongtingiaothong.model.User;
 import retrofit2.Retrofit;
 
@@ -47,8 +64,26 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Dexter.withContext(this)
+                .withPermissions(Arrays.asList(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                ))
+                .withListener(new MultiplePermissionsListener() {
+                    @Override
+                    public void onPermissionsChecked(MultiplePermissionsReport multiplePermissionsReport) {
+                    }
+
+                    @Override
+                    public void onPermissionRationaleShouldBeShown(List<PermissionRequest> list, PermissionToken permissionToken) {
+
+                    }
+                }).check();
 
         Retrofit retrofitClient = RetrofitClient.getInstance();
         iMyService = retrofitClient.create(IMyService.class);
@@ -116,6 +151,9 @@ public class MainActivity extends AppCompatActivity {
         compositeDisposable.add(iMyService.registerUser(id, password, name)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
+                .doOnError(throwable -> {
+                    throw new RuntimeException("Login failed!");
+                })
                 .subscribe(new Consumer<String>() {
                     @Override
                     public void accept(String respone) throws Exception {
@@ -138,15 +176,30 @@ public class MainActivity extends AppCompatActivity {
                 iMyService.loginUser(id, password)
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
+                        .doOnError(throwable -> {
+                            throw new RuntimeException("Login failed!");
+                        })
                         .subscribe(new Consumer<String>() {
                             @Override
                             public void accept(String respone) throws Exception {
-                                Toast.makeText(MainActivity.this, "" + respone, Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(MainActivity.this, MapActivity.class);
-                                intent.putExtra("id", id);
-                                startActivity(intent);
+//                                Toast.makeText(MainActivity.this, "" + respone, Toast.LENGTH_SHORT).show();
+                                LoginResponse loginResponse = new LoginResponse();
+                                try {
+                                    Gson g = new Gson();
+                                    loginResponse = g.fromJson(respone, LoginResponse.class);
+                                } catch(Exception e) {
+                                    System.out.println("[ERROR] login - parse json failed" + e.getMessage());
+                                }
+
+                                if (loginResponse.success){
+                                    Intent intent = new Intent(MainActivity.this, MapActivity.class);
+                                    intent.putExtra("id", id);
+                                    startActivity(intent);
+                                } else
+                                    Toast.makeText(MainActivity.this, "Wrong id or password", Toast.LENGTH_SHORT).show();
+                                }
                             }
-                        })
+                        )
         );
     }
 }
