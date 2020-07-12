@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "110765745058",
+    "firebase_url": "https://damh-281212.firebaseio.com",
+    "project_id": "damh-281212",
+    "storage_bucket": "damh-281212.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:110765745058:android:556722f2a7a127103ac8fb",
+        "android_client_info": {
+          "package_name": "ngochuan.damh.thongtingiaothong"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "110765745058-5182rp5roe5h1i8kr6fg1fpinjsv9ag5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ngochuan.damh.thongtingiaothong",
+            "certificate_hash": "fa4ac2707edf6ea9954905d26d4e8eeb0eb93070"
+          }
+        },
+        {
+          "client_id": "110765745058-c2fkdmsau041i1jlsqssvju3ggh2ejso.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBw62FGfVQ58qmFgLHj2gedHrxBGwcyD9k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "110765745058-c2fkdmsau041i1jlsqssvju3ggh2ejso.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

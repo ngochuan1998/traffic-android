@@ -9,6 +9,7 @@ import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
@@ -16,18 +17,13 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.SearchView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -38,7 +34,9 @@ import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener;
 import com.google.android.gms.maps.GoogleMap.OnMyLocationClickListener;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -47,6 +45,7 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
@@ -69,7 +68,10 @@ import ngochuan.damh.thongtingiaothong.PermissionUtils;
 import ngochuan.damh.thongtingiaothong.R;
 import ngochuan.damh.thongtingiaothong.Retrofit.IMyService;
 import ngochuan.damh.thongtingiaothong.Retrofit.RetrofitClient;
+import ngochuan.damh.thongtingiaothong.model.LoginResponse;
 import ngochuan.damh.thongtingiaothong.model.User;
+import ngochuan.damh.thongtingiaothong.model.UserLocation;
+import ngochuan.damh.thongtingiaothong.model.UsersLocationResponse;
 import retrofit2.Retrofit;
 
 /**
@@ -78,7 +80,7 @@ import retrofit2.Retrofit;
  * Permission for {@link android.Manifest.permission#ACCESS_FINE_LOCATION} is requested at run
  * time. If the permission has not been granted, the Activity is finished with an error message.
  */
-public class MapActivity extends AppCompatActivity
+public class MapAdminActivity extends AppCompatActivity
         implements
 //        SharedPreferences.OnSharedPreferenceChangeListener,
         OnMyLocationButtonClickListener,
@@ -100,34 +102,27 @@ public class MapActivity extends AppCompatActivity
     private boolean permissionDenied = false;
 
     private GoogleMap map;
-//    SearchView searchView;
+    SearchView searchView;
 
     private User user;
+    private static final int REQUEST_CALL = 1;
 
     IMyService iMyService;
     CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     public Context applicationContext;
-    private DrawerLayout drawer;
-//    BackgroundService mService=null;
-    boolean mBound=false;
+
+    LatLng searchResultLatLng = null;
+
+    //    BackgroundService mService=null;
+    boolean mBound = false;
 
     private FusedLocationProviderClient fusedLocationProviderClient;
+
     @SerializedName("id")
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_map);
-
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        drawer = findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
-                R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
@@ -138,120 +133,102 @@ public class MapActivity extends AppCompatActivity
         iMyService = retrofitClient.create(IMyService.class);
 
         // use this to start and trigger a service
-        applicationContext = this.getApplicationContext();
-        Intent i = new Intent(applicationContext, BackgroundService.class);
-        if (this.user != null) {
-            i.putExtra("id", this.user.id);
-        }
-        applicationContext.startService(i);
+//        applicationContext = this.getApplicationContext();
+//        Intent i = new Intent(applicationContext, BackgroundService.class);
+//        applicationContext.startService(i);
 
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_map_admin);
         SupportMapFragment mapFragment =
-                (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.myMap);
+                (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.adMap);
         mapFragment.getMapAsync(this);
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-//        searchView = findViewById(R.id.searchLoc);
-//        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-//            @Override
-//            public boolean onQueryTextSubmit(String query) {
-//                String location =searchView.getQuery().toString();
-//                List<Address> addressList = null;
-//                if (location !=null || !location.equals("")){
-//                    Geocoder geocoder = new Geocoder(MapActivity.this);
-//                    try {
-//                        addressList=geocoder.getFromLocationName(location,1);
-//                    } catch (IOException e){
-//                        e.printStackTrace();
-//                    }
-//                    Address address = addressList.get(0);
-//                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+        searchView = findViewById(R.id.searchLoc);
+        if (searchView != null) {
+            Log.e("TEST", "Search view is not null");
+            searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+                @Override
+                public boolean onQueryTextSubmit(String query) {
+                    String location = searchView.getQuery().toString();
+                    List<Address> addressList = null;
+                    if (location != null || !location.equals("")) {
+                        Geocoder geocoder = new Geocoder(MapAdminActivity.this);
+                        try {
+                            addressList = geocoder.getFromLocationName(location, 1);
+                            if (addressList != null && !addressList.isEmpty()) {
+                                Address address = addressList.get(0);
+                                Log.e("debug", "here");
+                                if (address != null) {
+                                    Log.e("debug", "here 3");
+                                    searchResultLatLng = new LatLng(address.getLatitude(), address.getLongitude());
 //                        map.clear();
 //                        map.addMarker(new MarkerOptions()
 //                                .position(latLng)
 //                                .title(latLng.toString()));
-//                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng,10));
-//                }
-//                return false;
-//            }
+                                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(searchResultLatLng, 10));
+//                                    new Timer().scheduleAtFixedRate(new TimerTask(){
+//                                        @Override
+//                                        public void run(){
+//                                            getUsersLocation();
 //
-//            @Override
-//            public boolean onQueryTextChange(String newText) {
-//                return false;
-//            }
-
-//        });
-
-
-//        searchView = findViewById(R.id.searchLoc);
-//        Places.initialize(getApplicationContext(),"map_api_key");
-//        searchView.setFocusable(false);
-//        searchView.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                List<Place .Field> fieldList = Arrays.asList(Place.Field.ADDRESS,
-//                        Place.Field.LAT_LNG,Place.Field.NAME);
-//                Intent intent = new Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY,
-//                        fieldList).build(MapActivity.this);
-//                startActivityForResult(intent,100);
-//            }
-//        });
-        new Handler().postDelayed(() -> {
-            getLocation();
-        },10000);
-
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }
-
-
-    @Override
-    protected void onStart() {
-        this.getLocation();
-        super.onStart();
-    }
-
-    public void getLocation() {
-        fusedLocationProviderClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
-            @Override
-            public void onComplete(@NonNull Task<Location> task) {
-                // Initialize Location
-                Location location = task.getResult();
-                if (location != null) {
-                    try {
-                        // Initialize geoCoder
-                        Geocoder geocoder = new Geocoder(MapActivity.this, Locale.getDefault());
-                        // Init address list
-                        List<Address> addresses = geocoder.getFromLocation(
-                                location.getLatitude(), location.getLongitude(),1
-                        );
-                        LatLng myLocation = new LatLng(addresses.get(0).getLatitude(), addresses.get(0).getLongitude());
-                        double latitude = location.getLatitude();
-                        double longitude = location.getLongitude();
-                        updateGPS(user.id, latitude, longitude);
-                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,10));
-                    } catch (IOException e) {
-                        System.out.println("[ERROR]" + e.getMessage());
-//                        e.printStackTrace();
+//                                        }
+//                                    },0,10000);
+                                    Log.e("debug", "here 2");
+                                }
+                            }
+                        } catch (IOException e) {
+                            Log.e("MapAdminActivity", "[ERROR] getFromLocationName " + e.getMessage());
+                        }
                     }
+                    new Timer().scheduleAtFixedRate(new TimerTask() {
+                        @Override
+                        public void run() {
+                            getUsersLocation();
+                        }
+                    }, 0, 10000);
+                    return false;
                 }
-            }
-        });
+
+                @Override
+                public boolean onQueryTextChange(String newText) {
+                    return false;
+                }
+            });
+        } else {
+            Log.e("TEST", "Search view is null");
+        }
+
+
     }
 
+//    @Override
+//    protected void onStart() {
+//        this.getUsersLocation();
+//        super.onStart();
+//    }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         map = googleMap;
         map.setOnMyLocationButtonClickListener(this);
         map.setOnMyLocationClickListener(this);
+        map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                makePhoneCall(marker.getTitle());
+                return false;
+            }
+        });
         enableMyLocation();
+//        new Timer().scheduleAtFixedRate(new TimerTask() {
+//            @Override
+//            public void run() {
+//                getUsersLocation();
+//            }
+//        }, 0, 10000);
     }
+
 
     /**
      * Enables the My Location layer if the fine location permission has been granted.
@@ -274,7 +251,7 @@ public class MapActivity extends AppCompatActivity
         Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
-        this.getLocation();
+        this.getUsersLocation();
         return false;
     }
 
@@ -297,6 +274,14 @@ public class MapActivity extends AppCompatActivity
             // Display the missing permission error dialog when the fragments resume.
             permissionDenied = true;
         }
+
+        if (requestCode == REQUEST_CALL) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+//                makePhoneCall();
+            } else {
+                Toast.makeText(this, "Permission DENIED", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override
@@ -318,19 +303,64 @@ public class MapActivity extends AppCompatActivity
     }
 
 
-    private void updateGPS(String id, double latitude, double longitude) {
-        compositeDisposable.add(iMyService.updateGPS(id, latitude, longitude)
+    private void getUsersLocation() {
+        compositeDisposable.add(iMyService.getUsersLocation()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .doOnError(throwable -> {
-                    Toast.makeText(this, "Update location failed!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Get users location Failed!", Toast.LENGTH_SHORT).show();
                 })
                 .subscribe(new Consumer<String>() {
                     @Override
-                    public void accept(String respone) throws Exception {
-                        Toast.makeText(MapActivity.this, "Location updated", Toast.LENGTH_SHORT).show();
+                    public void accept(String respone) {
+                        UsersLocationResponse usersLocationResponse = new UsersLocationResponse();
+                        try {
+                            Gson g = new Gson();
+                            usersLocationResponse = g.fromJson(respone, UsersLocationResponse.class);
+                        } catch (Exception e) {
+                            System.out.println("[ERROR] Get users location" + e.getMessage());
+                            return;
+                        }
+                        Toast.makeText(MapAdminActivity.this, "Get users location", Toast.LENGTH_SHORT).show();
+                        Log.e("Log", usersLocationResponse.toString());
+                                // Delete markers
+                        map.clear();
+
+                        try {
+                            if (map != null) {
+                                // Add markers
+                                for (UserLocation userLocation : usersLocationResponse.userLocations) {
+                                    LatLng latLng = new LatLng(userLocation.latitude, userLocation.longitude);
+                                    map.addMarker(new MarkerOptions()
+                                            .position(latLng)
+                                            .title(userLocation.id)
+//                                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.abc))
+                                    );
+                                }
+
+                                if (searchResultLatLng != null) {
+                                    map.addMarker(new MarkerOptions()
+                                            .position(searchResultLatLng)
+                                            .title(searchResultLatLng.toString()));
+                                }
+                            }
+                        } catch(Exception e) {
+                            Log.e("Debug", "[ERROR] getUsersLocation" + e.getMessage());
+                        }
                     }
                 })
         );
+    }
+
+    private void makePhoneCall(String id) {
+        if (ContextCompat.checkSelfPermission(MapAdminActivity.this,
+                Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(MapAdminActivity.this,
+                    new String[]{Manifest.permission.CALL_PHONE}, REQUEST_CALL);
+        } else {
+            String dial = "tel:" + id;
+            startActivity(new Intent(Intent.ACTION_CALL, Uri.parse(dial)));
+        }
+        Toast.makeText(MapAdminActivity.this, "Enter Phone Number", Toast.LENGTH_SHORT).show();
     }
 }

@@ -1,4 +1,5 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.google.gms.google-services'
 
 android {
     compileOptions {
@@ -53,4 +54,11 @@ dependencies {
     implementation 'org.greenrobot:eventbus:3.2.0'
     implementation 'com.github.arimorty:floatingsearchview:2.1.1'
     implementation 'com.karumi:dexter:6.2.1'
+
+    implementation 'androidx.core:core:1.0.0'
+    //noinspection GradleCompatible
+    implementation 'com.android.support:design:28.0.0'
+
+    implementation 'com.google.firebase:firebase-messaging:20.2.3'
+
 }

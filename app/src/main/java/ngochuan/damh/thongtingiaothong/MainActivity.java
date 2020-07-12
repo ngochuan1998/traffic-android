@@ -192,9 +192,15 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                                 if (loginResponse.success){
-                                    Intent intent = new Intent(MainActivity.this, MapActivity.class);
-                                    intent.putExtra("id", id);
-                                    startActivity(intent);
+                                    if (loginResponse.user.type.equals("BTV")) {
+                                        Intent intent = new Intent(MainActivity.this, MapAdminActivity.class);
+                                        intent.putExtra("id", id);
+                                        startActivity(intent);
+                                    } else {
+                                        Intent intent = new Intent(MainActivity.this, MapActivity.class);
+                                        intent.putExtra("id", id);
+                                        startActivity(intent);
+                                    }
                                 } else
                                     Toast.makeText(MainActivity.this, "Wrong id or password", Toast.LENGTH_SHORT).show();
                                 }
