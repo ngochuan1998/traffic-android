@@ -13,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.SearchView;
@@ -47,6 +48,7 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.AutocompleteActivity;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.android.material.navigation.NavigationView;
 import com.google.gson.annotations.SerializedName;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
@@ -84,7 +86,8 @@ public class MapActivity extends AppCompatActivity
         OnMyLocationButtonClickListener,
         OnMyLocationClickListener,
         OnMapReadyCallback,
-        ActivityCompat.OnRequestPermissionsResultCallback {
+        ActivityCompat.OnRequestPermissionsResultCallback,
+        NavigationView.OnNavigationItemSelectedListener {
 
     /**
      * Request code for location permission request.
@@ -109,10 +112,13 @@ public class MapActivity extends AppCompatActivity
 
     public Context applicationContext;
     private DrawerLayout drawer;
-//    BackgroundService mService=null;
-    boolean mBound=false;
+    //    BackgroundService mService=null;
+    boolean mBound = false;
 
     private FusedLocationProviderClient fusedLocationProviderClient;
+
+    Intent backgroundIntent = null;
+
     @SerializedName("id")
 
     @Override
@@ -123,6 +129,8 @@ public class MapActivity extends AppCompatActivity
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         drawer = findViewById(R.id.drawer_layout);
+        NavigationView navigationView = findViewById(R.id.nav_view);
+        navigationView.setNavigationItemSelectedListener(this);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawer, toolbar,
                 R.string.navigation_drawer_open, R.string.navigation_drawer_close);
         drawer.addDrawerListener(toggle);
@@ -139,11 +147,11 @@ public class MapActivity extends AppCompatActivity
 
         // use this to start and trigger a service
         applicationContext = this.getApplicationContext();
-        Intent i = new Intent(applicationContext, BackgroundService.class);
+        backgroundIntent = new Intent(applicationContext, BackgroundService.class);
         if (this.user != null) {
-            i.putExtra("id", this.user.id);
+            backgroundIntent.putExtra("id", this.user.id);
         }
-        applicationContext.startService(i);
+        applicationContext.startService(backgroundIntent);
 
         SupportMapFragment mapFragment =
                 (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.myMap);
@@ -196,7 +204,7 @@ public class MapActivity extends AppCompatActivity
 //        });
         new Handler().postDelayed(() -> {
             getLocation();
-        },10000);
+        }, 10000);
 
     }
 
@@ -216,6 +224,16 @@ public class MapActivity extends AppCompatActivity
         super.onStart();
     }
 
+    @Override
+    protected void onDestroy() {
+        if (backgroundIntent != null) {
+//            stopService(backgroundIntent);
+            Log.e("debug", "Stop background service");
+            stopService(new Intent(MapActivity.this, BackgroundService.class));
+        }
+        super.onDestroy();
+    }
+
     public void getLocation() {
         fusedLocationProviderClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
             @Override
@@ -228,13 +246,13 @@ public class MapActivity extends AppCompatActivity
                         Geocoder geocoder = new Geocoder(MapActivity.this, Locale.getDefault());
                         // Init address list
                         List<Address> addresses = geocoder.getFromLocation(
-                                location.getLatitude(), location.getLongitude(),1
+                                location.getLatitude(), location.getLongitude(), 1
                         );
                         LatLng myLocation = new LatLng(addresses.get(0).getLatitude(), addresses.get(0).getLongitude());
                         double latitude = location.getLatitude();
                         double longitude = location.getLongitude();
                         updateGPS(user.id, latitude, longitude);
-                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,10));
+                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation, 16));
                     } catch (IOException e) {
                         System.out.println("[ERROR]" + e.getMessage());
 //                        e.printStackTrace();
@@ -332,5 +350,21 @@ public class MapActivity extends AppCompatActivity
                     }
                 })
         );
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.nav_profile:
+                Intent intent = new Intent(MapActivity.this, profile.class);
+                startActivity(intent);
+                break;
+            case R.id.nav_voucher:
+                Intent intent2 = new Intent(MapActivity.this, voucher.class);
+                startActivity(intent2);
+                break;
+        }
+        drawer.closeDrawer(GravityCompat.START);
+        return true;
     }
 }

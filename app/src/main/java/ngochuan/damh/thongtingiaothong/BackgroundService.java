@@ -33,6 +33,8 @@ public class BackgroundService extends Service {
     private static final int LOCATION_INTERVAL = 1000;
     private static final float LOCATION_DISTANCE = 10f;
 
+    private Timer timer = null;
+
     IMyService iMyService;
     CompositeDisposable compositeDisposable = new CompositeDisposable();
 
@@ -121,7 +123,8 @@ public class BackgroundService extends Service {
             Log.d(TAG, "gps provider does not exist " + ex.getMessage());
         }
 
-        new Timer().scheduleAtFixedRate(new TimerTask(){
+        timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask(){
             @Override
             public void run(){
                 Location location = mLocationListeners[0].mLastLocation;
@@ -135,8 +138,9 @@ public class BackgroundService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.e(TAG, "onDestroy");
+        Log.e(TAG, "Background service onDestroy");
         super.onDestroy();
+        timer.cancel();
         if (mLocationManager != null) {
             for (int i = 0; i < mLocationListeners.length; i++) {
                 try {

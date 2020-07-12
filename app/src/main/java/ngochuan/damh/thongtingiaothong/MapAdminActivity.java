@@ -166,7 +166,7 @@ public class MapAdminActivity extends AppCompatActivity
 //                        map.addMarker(new MarkerOptions()
 //                                .position(latLng)
 //                                .title(latLng.toString()));
-                                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(searchResultLatLng, 10));
+                                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(searchResultLatLng, 16));
 //                                    new Timer().scheduleAtFixedRate(new TimerTask(){
 //                                        @Override
 //                                        public void run(){
@@ -251,6 +251,28 @@ public class MapAdminActivity extends AppCompatActivity
         Toast.makeText(this, "MyLocation button clicked", Toast.LENGTH_SHORT).show();
         // Return false so that we don't consume the event and the default behavior still occurs
         // (the camera animates to the user's current position).
+        fusedLocationProviderClient.getLastLocation().addOnCompleteListener(new OnCompleteListener<Location>() {
+            @Override
+            public void onComplete(@NonNull Task<Location> task) {
+                // Initialize Location
+                Location location = task.getResult();
+                if (location != null) {
+                    try {
+                        // Initialize geoCoder
+                        Geocoder geocoder = new Geocoder(MapAdminActivity.this, Locale.getDefault());
+                        // Init address list
+                        List<Address> addresses = geocoder.getFromLocation(
+                                location.getLatitude(), location.getLongitude(),1
+                        );
+                        LatLng myLocation = new LatLng(addresses.get(0).getLatitude(), addresses.get(0).getLongitude());
+                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(myLocation,16));
+                    } catch (IOException e) {
+                        System.out.println("[ERROR]" + e.getMessage());
+//                        e.printStackTrace();
+                    }
+                }
+            }
+        });
         this.getUsersLocation();
         return false;
     }
@@ -328,20 +350,19 @@ public class MapAdminActivity extends AppCompatActivity
 
                         try {
                             if (map != null) {
+                                if (searchResultLatLng != null) {
+                                    map.addMarker(new MarkerOptions()
+                                            .position(searchResultLatLng)
+                                            .title(searchResultLatLng.toString()));
+                                }
                                 // Add markers
                                 for (UserLocation userLocation : usersLocationResponse.userLocations) {
                                     LatLng latLng = new LatLng(userLocation.latitude, userLocation.longitude);
                                     map.addMarker(new MarkerOptions()
                                             .position(latLng)
                                             .title(userLocation.id)
-//                                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.abc))
+                                            .icon(BitmapDescriptorFactory.fromResource(R.drawable.abc))
                                     );
-                                }
-
-                                if (searchResultLatLng != null) {
-                                    map.addMarker(new MarkerOptions()
-                                            .position(searchResultLatLng)
-                                            .title(searchResultLatLng.toString()));
                                 }
                             }
                         } catch(Exception e) {

@@ -10,10 +10,7 @@
             android:id="@+id/nav_voucher"
             android:icon="@drawable/ic_voucher"
             android:title="Voucher" />
-        <item
-            android:id="@+id/nav_logout"
-            android:icon="@drawable/ic_exit"
-            android:title="Đăng xuất" />
+
     </group>
 
 </menu>
