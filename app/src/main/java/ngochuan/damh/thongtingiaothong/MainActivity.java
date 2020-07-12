@@ -43,6 +43,7 @@ import io.reactivex.schedulers.Schedulers;
 import ngochuan.damh.thongtingiaothong.Retrofit.IMyService;
 import ngochuan.damh.thongtingiaothong.Retrofit.RetrofitClient;
 import ngochuan.damh.thongtingiaothong.model.LoginResponse;
+import ngochuan.damh.thongtingiaothong.model.SharedData;
 import ngochuan.damh.thongtingiaothong.model.User;
 import retrofit2.Retrofit;
 
@@ -192,6 +193,7 @@ public class MainActivity extends AppCompatActivity {
                                 }
 
                                 if (loginResponse.success){
+                                    SharedData.getInstance().user = loginResponse.user;
                                     if (loginResponse.user.type.equals("BTV")) {
                                         Intent intent = new Intent(MainActivity.this, MapAdminActivity.class);
                                         intent.putExtra("id", id);
